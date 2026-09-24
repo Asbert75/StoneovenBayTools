@@ -175,12 +175,62 @@ local function getLocation()
     }
 end
 
+-- Session XP is tracked as accumulated deltas rather than an absolute total, since UnitXP/UnitXPMax reset every level.
+local sessionStartTime
+local sessionXPGained = 0
+local lastXP, lastMaxXP, lastLevel
+
+local function trackXPChange()
+    local currentXP = UnitXP("player")
+    local currentLevel = UnitLevel("player")
+
+    if lastLevel and currentLevel > lastLevel then
+        -- Leveled up since the last update: count what was earned to cap the old level, then progress into the new one.
+        sessionXPGained = sessionXPGained + (lastMaxXP - lastXP) + currentXP
+    elseif lastXP then
+        sessionXPGained = sessionXPGained + math.max(0, currentXP - lastXP)
+    end
+
+    lastXP = currentXP
+    lastMaxXP = UnitXPMax("player")
+    lastLevel = currentLevel
+end
+
+SBT.RegisterEvent("PLAYER_LOGIN", function()
+    sessionStartTime = time()
+    sessionXPGained = 0
+    lastXP = UnitXP("player")
+    lastMaxXP = UnitXPMax("player")
+    lastLevel = UnitLevel("player")
+end)
+
+SBT.RegisterEvent("PLAYER_XP_UPDATE", trackXPChange)
+SBT.RegisterEvent("PLAYER_LEVEL_UP", trackXPChange)
+
+local function getSessionStatus()
+    local elapsed = sessionStartTime and math.max(0, time() - sessionStartTime) or 0
+    local hours = math.floor(elapsed / 3600)
+    local minutes = math.floor((elapsed % 3600) / 60)
+    local seconds = elapsed % 60
+    local xpPerHour = elapsed > 0 and (sessionXPGained / (elapsed / 3600)) or 0
+
+    return string.format(
+        "Session: %dh %dm %ds, XP gained: %d, XP/hour: %d",
+        hours, minutes, seconds, sessionXPGained, xpPerHour
+    ), {
+        elapsed = elapsed,
+        xpGained = sessionXPGained,
+        xpPerHour = xpPerHour,
+    }
+end
+
 local function getHelpMessage()
     return table.concat({
         "sbt help",
         "sbt status",
         "sbt professions",
-        "sbt location"
+        "sbt location",
+        "sbt session"
     }, "\n")
 end
 
@@ -188,3 +238,4 @@ registerTool("sbt help", { guild = true, whisper = true }, getHelpMessage)
 registerTool("sbt status", { guild = true, whisper = true }, getLevelStatus)
 registerTool("sbt professions", { guild = true, whisper = true }, getPrimaryProfessions)
 registerTool("sbt location", { guild = true, whisper = true }, getLocation)
+registerTool("sbt session", { guild = true, whisper = true }, getSessionStatus)

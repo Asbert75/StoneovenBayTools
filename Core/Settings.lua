@@ -5,7 +5,8 @@ local function getHelpMessage()
         "sbt help",
         "sbt status",
         "sbt professions",
-        "sbt location"
+        "sbt location",
+        "sbt session"
     }, "\n")
 end
 
@@ -29,7 +30,13 @@ SlashCmdList.STONEOVENBAYTOOLS = function(message)
         ))
     elseif command == "ui" then
         SBT:ToggleMainFrame()
+    elseif command == "minimap" then
+        SBT:SetMinimapButtonHidden(not SBT:IsMinimapButtonHidden())
+        print(SBT.PREFIX .. string.format("Minimap button %s.", SBT:IsMinimapButtonHidden() and "hidden" or "shown"))
+        if SBT.RefreshSettingsGUI then
+            SBT:RefreshSettingsGUI()
+        end
     else
-        print(SBT.PREFIX .. "Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n\nGuild tools:\n" .. getHelpMessage())
+        print(SBT.PREFIX .. "Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n\nGuild tools:\n" .. getHelpMessage())
     end
 end

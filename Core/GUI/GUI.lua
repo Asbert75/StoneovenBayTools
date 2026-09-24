@@ -136,6 +136,16 @@ function SBT:InitializeGUI()
     cooldownLabel:SetPoint("TOPLEFT", 16, -52)
     cooldownSlider:SetPoint("TOPLEFT", 16, -76)
 
+    local minimapCheckbox = SBT.Widgets:CreateCheckbox(generalPanel, "Show minimap button", {
+        getValue = function()
+            return not SBT:IsMinimapButtonHidden()
+        end,
+        setValue = function(value)
+            SBT:SetMinimapButtonHidden(not value)
+        end,
+    })
+    minimapCheckbox:SetPoint("TOPLEFT", 12, -116)
+
     local scrollFrame, scrollContent = SBT.Widgets:CreateScrollFrame(cachedDataPanel)
     scrollFrame:SetPoint("TOPLEFT", 8, -8)
     scrollFrame:SetPoint("BOTTOMRIGHT", -28, 8)
@@ -223,6 +233,7 @@ function SBT:InitializeGUI()
     function SBT:RefreshSettingsGUI()
         responseCheckbox:Refresh()
         cooldownSlider:Refresh()
+        minimapCheckbox:Refresh()
         SBT:RefreshCachedDataTable()
     end
 
