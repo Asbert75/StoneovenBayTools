@@ -1,0 +1,12 @@
+## Interface: 16001, 16000, 120100
+## Title: Stoneoven Bay Forever
+## Notes: Stoneoven Bay Internal Addon
+## Author: Wicked
+## Version: 1.0.0
+## IconTexture: Interface\MainMenuBar\UI-MainMenuBar-EndCap-Dwarf
+## Category: UI
+## SavedVariables: StoneovenBayToolsDB
+## SavedVariablesPerCharacter: StoneovenBayToolsCharDB
+## DefaultState: enabled
+
+Core.lua
