@@ -4,6 +4,46 @@ local tools = {}
 local lastResponseAt = {}
 local sendChatMessage = (C_ChatInfo and C_ChatInfo.SendChatMessage) or rawget(_G, "SendChatMessage")
 
+-- Chat text alone can't carry reliable mapID/x/y, so location data is also sent as a structured addon message.
+local LOCATION_PREFIX = "SBTLOC"
+if C_ChatInfo.RegisterAddonMessagePrefix then
+    C_ChatInfo.RegisterAddonMessagePrefix(LOCATION_PREFIX)
+end
+
+local function sendLocationPing(channel, target, data)
+    if not (data and data.mapID and data.x and data.y) then
+        return
+    end
+
+    local payload = string.format("%d:%.6f:%.6f", data.mapID, data.x, data.y)
+    if channel == "guild" then
+        C_ChatInfo.SendAddonMessage(LOCATION_PREFIX, payload, "GUILD")
+    else
+        C_ChatInfo.SendAddonMessage(LOCATION_PREFIX, payload, "WHISPER", target)
+    end
+end
+
+SBT.RegisterEvent("CHAT_MSG_ADDON", function(prefix, message, _, sender)
+    if prefix ~= LOCATION_PREFIX or Ambiguate(sender or "", "none") == UnitName("player") then
+        return
+    end
+
+    local tomtom = rawget(_G, "TomTom")
+    if not (tomtom and tomtom.AddWaypoint) then
+        return
+    end
+
+    local mapID, x, y = message:match("^(%d+):([%d%.]+):([%d%.]+)$")
+    if not mapID then
+        return
+    end
+
+    tomtom:AddWaypoint(tonumber(mapID), tonumber(x), tonumber(y), {
+        title = string.format("%s (guild)", Ambiguate(sender, "none")),
+        from = "StoneovenBayTools",
+    })
+end)
+
 local function registerTool(command, channels, handler)
     tools[command] = {
         channels = channels,
@@ -25,9 +65,10 @@ end
 
 local function cacheStatus(command, data)
     local playerName = UnitName("player")
-    SBT.MemberStatusCache[playerName] = SBT.MemberStatusCache[playerName] or {}
-    SBT.MemberStatusCache[playerName][command] = data
-    SBT.MemberStatusCache[playerName].updatedAt = time()
+    local database = SBT:GetProfileDB()
+    database.memberStatusCache[playerName] = database.memberStatusCache[playerName] or {}
+    database.memberStatusCache[playerName][command] = data
+    database.memberStatusCache[playerName].updatedAt = time()
 end
 
 local function sendResponse(command, channel, target, message, data)
@@ -39,6 +80,7 @@ local function sendResponse(command, channel, target, message, data)
         sendChatMessage(prefixedMessage, "WHISPER", nil, target)
     end
 
+    sendLocationPing(channel, target, data)
     cacheStatus(command, data or { message = message })
 end
 
@@ -56,7 +98,7 @@ function SBT.HandleToolMessage(channel, command, message, sender)
         return
     end
 
-    local database = SBT.GetDatabase()
+    local database = SBT:GetProfileDB()
     if not database.enableAutoResponse then
         return
     end
