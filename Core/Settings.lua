@@ -4,7 +4,7 @@ function SBT:getHelpMessage()
     return table.concat({
         "sbt help",
         "sbt status",
-        "sbt professions",
+        "sbt professions (aliases: sbt proffs, sbt profs)",
         "sbt location",
         "sbt session"
     }, "\n")

@@ -1,6 +1,7 @@
 local _, SBT = ...
 
 local tools = {}
+local aliasToCommand = {}
 local lastResponseAt = {}
 local sendChatMessage = (C_ChatInfo and C_ChatInfo.SendChatMessage) or rawget(_G, "SendChatMessage")
 
@@ -44,22 +45,37 @@ SBT.RegisterEvent("CHAT_MSG_ADDON", function(prefix, message, _, sender)
     })
 end)
 
-local function registerTool(command, channels, handler)
+-- commands may be a single bare word or a list of aliases (e.g. "help" or { "professions", "profs" }); the "sbt " prefix
+-- is always required in chat but only needs to be hard-coded here, not repeated in every tool definition. All aliases
+-- share one cooldown/cache entry (the first/canonical name).
+local COMMAND_PREFIX = "sbt "
+
+local function registerTool(commands, channels, handler)
+    if type(commands) == "string" then
+        commands = { commands }
+    end
+
+    local command = COMMAND_PREFIX .. commands[1]
     tools[command] = {
         channels = channels,
         handler = handler
     }
 
-    if channels.guild then
-        SBT.RegisterEvent("CHAT_MSG_GUILD", function(message, sender)
-            SBT.HandleToolMessage("guild", command, message, sender)
-        end)
-    end
+    for _, alias in ipairs(commands) do
+        local fullAlias = COMMAND_PREFIX .. alias
+        aliasToCommand[fullAlias] = command
 
-    if channels.whisper then
-        SBT.RegisterEvent("CHAT_MSG_WHISPER", function(message, sender)
-            SBT.HandleToolMessage("whisper", command, message, sender)
-        end)
+        if channels.guild then
+            SBT.RegisterEvent("CHAT_MSG_GUILD", function(message, sender)
+                SBT.HandleToolMessage("guild", fullAlias, message, sender)
+            end)
+        end
+
+        if channels.whisper then
+            SBT.RegisterEvent("CHAT_MSG_WHISPER", function(message, sender)
+                SBT.HandleToolMessage("whisper", fullAlias, message, sender)
+            end)
+        end
     end
 end
 
@@ -88,12 +104,13 @@ local function normalizeCommand(message)
     return message and message:lower():match("^%s*(.-)%s*$")
 end
 
-function SBT.HandleToolMessage(channel, command, message, sender)
-    if normalizeCommand(message) ~= command then
+function SBT.HandleToolMessage(channel, alias, message, sender)
+    if normalizeCommand(message) ~= alias then
         return
     end
 
-    local tool = tools[command]
+    local command = aliasToCommand[alias]
+    local tool = command and tools[command]
     if not tool or not tool.channels[channel] then
         return
     end
@@ -243,8 +260,8 @@ local function getSessionStatus()
     }
 end
 
-registerTool("sbt help", { guild = true, whisper = true }, function() return SBT:getHelpMessage() end)
-registerTool("sbt status", { guild = true, whisper = true }, getLevelStatus)
-registerTool("sbt professions", { guild = true, whisper = true }, getPrimaryProfessions)
-registerTool("sbt location", { guild = true, whisper = true }, getLocation)
-registerTool("sbt session", { guild = true, whisper = true }, getSessionStatus)
+registerTool("help", { guild = true, whisper = true }, function() return SBT:getHelpMessage() end)
+registerTool("status", { guild = true, whisper = true }, getLevelStatus)
+registerTool({ "professions", "proffs", "profs" }, { guild = true, whisper = true }, getPrimaryProfessions)
+registerTool({ "location", "loc" }, { guild = true, whisper = true }, getLocation)
+registerTool("session", { guild = true, whisper = true }, getSessionStatus)
