@@ -48,6 +48,10 @@ function SBT:OnProfileChanged()
     if SBT.ApplyMinimapButtonVisibility then
         SBT:ApplyMinimapButtonVisibility()
     end
+
+    if SBT.RefreshSettingsGUI then
+        SBT:RefreshSettingsGUI()
+    end
 end
 
 -- AceAddon only invokes lifecycle callbacks on the addon object it manages, not on the private namespace table.
@@ -66,7 +70,10 @@ end
 
 function StoneovenBayTools:OnEnable()
     SBT.DefaultFont = SBT:GetSharedMedia("font")
+    
     SBT:Init()
     SBT:InitializeMinimapButton()
+
+    SBT:InitializeGUI()
     SBT:PrettyPrint("Addon loaded. Type |cff38b357/sbt|r for settings.")
 end

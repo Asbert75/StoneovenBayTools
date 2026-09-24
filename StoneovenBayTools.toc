@@ -28,5 +28,10 @@ Core\SharedMedia.lua
 Core\Tools.lua
 Core\Defaults.lua
 
+## GUI
+Core\GUI\Theme.lua
+Core\GUI\Widgets.lua
+Core\GUI\GUI.lua
+
 ## Modules
 Modules\MinimapButton.lua
