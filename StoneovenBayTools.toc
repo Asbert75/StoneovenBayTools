@@ -1,10 +1,8 @@
 ## Interface: 16001, 16000, 120100
-## Title: Stoneoven Bay Forever
-## Notes: Stoneoven Bay Internal Addon
+## Title: StoneovenBayTools
 ## Author: Wicked
 ## Version: 1.0.0
-## IconTexture: Interface\MainMenuBar\UI-MainMenuBar-EndCap-Dwarf
-## Category: UI
+## Category: Guild
 ## SavedVariables: StoneovenBayToolsDB
 ## SavedVariablesPerCharacter: StoneovenBayToolsCharDB
 ## DefaultState: enabled

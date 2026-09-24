@@ -8,7 +8,7 @@ SBT.ADDON_NAME = C_AddOns.GetAddOnMetadata("StoneovenBayTools", "Title")
 SBT.DefaultFont = "";
 
 function SBT:PrettyPrint(msg)
-    print("|cff38b357" .. SBT.ADDON_NAME .. ":|r " .. msg)
+    print("|cff8c1616" .. SBT.ADDON_NAME .. ":|r " .. msg)
 end
 
 function SBT:GetProfileDB()

@@ -1,6 +1,6 @@
 local _, SBT = ...
 
-local function getHelpMessage()
+function SBT:getHelpMessage()
     return table.concat({
         "sbt help",
         "sbt status",
@@ -18,12 +18,12 @@ SlashCmdList.STONEOVENBAYTOOLS = function(message)
 
     if command == "on" or command == "enable" then
         database.enableAutoResponse = true
-        print(SBT.PREFIX .. "Guild responses enabled.")
+        SBT:PrettyPrint("Guild responses enabled.")
     elseif command == "off" or command == "disable" then
         database.enableAutoResponse = false
-        print(SBT.PREFIX .. "Guild responses disabled.")
+        SBT:PrettyPrint("Guild responses disabled.")
     elseif command == "status" or command == "config" then
-        print(SBT.PREFIX .. string.format(
+        SBT:PrettyPrint(string.format(
             "Guild responses are %s. Cooldown: %d seconds.",
             database.enableAutoResponse and "enabled" or "disabled",
             database.responseCooldown
@@ -32,11 +32,11 @@ SlashCmdList.STONEOVENBAYTOOLS = function(message)
         SBT:ToggleMainFrame()
     elseif command == "minimap" then
         SBT:SetMinimapButtonHidden(not SBT:IsMinimapButtonHidden())
-        print(SBT.PREFIX .. string.format("Minimap button %s.", SBT:IsMinimapButtonHidden() and "hidden" or "shown"))
+        SBT:PrettyPrint(string.format("Minimap button %s.", SBT:IsMinimapButtonHidden() and "hidden" or "shown"))
         if SBT.RefreshSettingsGUI then
             SBT:RefreshSettingsGUI()
         end
     else
-        print(SBT.PREFIX .. "Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n\nGuild tools:\n" .. getHelpMessage())
+        SBT:PrettyPrint("Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n\nGuild tools:\n" .. SBT:getHelpMessage())
     end
 end

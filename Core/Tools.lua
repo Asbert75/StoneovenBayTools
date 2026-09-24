@@ -72,7 +72,7 @@ local function cacheStatus(command, data)
 end
 
 local function sendResponse(command, channel, target, message, data)
-    local prefixedMessage = "SBT: " .. message
+    local prefixedMessage = "[SBT] " .. message
 
     if channel == "guild" then
         sendChatMessage(prefixedMessage, "GUILD")
@@ -142,11 +142,30 @@ local function getPrimaryProfessions()
     return table.concat(professions, ", ")
 end
 
+-- Swedish-style number grouping: space as the thousands separator (e.g. 17000 -> "17 000").
+local function formatNumber(value)
+    local negative = value < 0
+    value = math.floor(math.abs(value) + 0.5)
+
+    local digits = tostring(value)
+    local firstGroupLength = #digits % 3
+    if firstGroupLength == 0 then
+        firstGroupLength = 3
+    end
+
+    local result = digits:sub(1, firstGroupLength)
+    for index = firstGroupLength + 1, #digits, 3 do
+        result = result .. " " .. digits:sub(index, index + 2)
+    end
+
+    return (negative and "-" or "") .. result
+end
+
 local function getLevelStatus()
     local level = UnitLevel("player")
     local currentXP = UnitXP("player")
     local maxXP = UnitXPMax("player")
-    return string.format("Level %d: %d/%dxp", level, currentXP, maxXP), {
+    return string.format("Level %d: %s/%sxp", level, formatNumber(currentXP), formatNumber(maxXP)), {
         level = level,
         currentXP = currentXP,
         maxXP = maxXP
@@ -215,8 +234,8 @@ local function getSessionStatus()
     local xpPerHour = elapsed > 0 and (sessionXPGained / (elapsed / 3600)) or 0
 
     return string.format(
-        "Session: %dh %dm %ds, XP gained: %d, XP/hour: %d",
-        hours, minutes, seconds, sessionXPGained, xpPerHour
+        "Session: %dh %dm %ds, XP gained: %s, XP/hour: %s",
+        hours, minutes, seconds, formatNumber(sessionXPGained), formatNumber(xpPerHour)
     ), {
         elapsed = elapsed,
         xpGained = sessionXPGained,
@@ -224,17 +243,7 @@ local function getSessionStatus()
     }
 end
 
-local function getHelpMessage()
-    return table.concat({
-        "sbt help",
-        "sbt status",
-        "sbt professions",
-        "sbt location",
-        "sbt session"
-    }, "\n")
-end
-
-registerTool("sbt help", { guild = true, whisper = true }, getHelpMessage)
+registerTool("sbt help", { guild = true, whisper = true }, function() return SBT:getHelpMessage() end)
 registerTool("sbt status", { guild = true, whisper = true }, getLevelStatus)
 registerTool("sbt professions", { guild = true, whisper = true }, getPrimaryProfessions)
 registerTool("sbt location", { guild = true, whisper = true }, getLocation)

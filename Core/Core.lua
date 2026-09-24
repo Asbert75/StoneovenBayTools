@@ -1,7 +1,6 @@
 local _, SBT = ...
 local StoneovenBayTools = LibStub("AceAddon-3.0"):NewAddon("StoneovenBayTools")
 
-SBT.PREFIX = "|cffe6c56cStoneovenBayTools|r: "
 SBT.EventHandlers = {}
 SBT.Frame = CreateFrame("Frame")
 
@@ -75,5 +74,5 @@ function StoneovenBayTools:OnEnable()
     SBT:InitializeMinimapButton()
 
     SBT:InitializeGUI()
-    SBT:PrettyPrint("Addon loaded. Type |cff38b357/sbt|r for settings.")
+    SBT:PrettyPrint("Addon loaded. Type |cff8c1616/sbt|r for commands or |cff8c1616/sbt ui|r for settings.")
 end
