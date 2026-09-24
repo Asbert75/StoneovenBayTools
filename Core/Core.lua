@@ -45,7 +45,6 @@ function SBT:GetAutoProfileSettings()
 end
 
 function SBT:OnProfileChanged()
-    SBT.GetDatabase()
     if SBT.ApplyMinimapButtonVisibility then
         SBT:ApplyMinimapButtonVisibility()
     end
@@ -66,7 +65,6 @@ function StoneovenBayTools:OnInitialize()
 end
 
 function StoneovenBayTools:OnEnable()
-    SBT.GetDatabase()
     SBT.DefaultFont = SBT:GetSharedMedia("font")
     SBT:Init()
     SBT:InitializeMinimapButton()

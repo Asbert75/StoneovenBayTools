@@ -40,6 +40,7 @@ local SharedDefaults = {
     },
     enableAutoResponse = true,
     responseCooldown = 10,
+    memberStatusCache = {},
 }
 
 local Defaults = {

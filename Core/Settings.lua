@@ -1,24 +1,4 @@
-local ADDON, SBT = ...
-
-SBT.DB_DEFAULTS = {
-    enableAutoResponse = true,
-    responseCooldown = 10,
-    minimapButtonAngle = 220,
-    memberStatusCache = {}
-}
-
-function SBT.GetDatabase()
-    StoneovenBayToolsDB = StoneovenBayToolsDB or {}
-
-    for key, defaultValue in pairs(SBT.DB_DEFAULTS) do
-        if StoneovenBayToolsDB[key] == nil then
-            StoneovenBayToolsDB[key] = defaultValue
-        end
-    end
-
-    SBT.MemberStatusCache = StoneovenBayToolsDB.memberStatusCache
-    return StoneovenBayToolsDB
-end
+local _, SBT = ...
 
 local function getHelpMessage()
     return table.concat({
@@ -33,7 +13,7 @@ SLASH_STONEOVENBAYTOOLS1 = "/sbt"
 SLASH_STONEOVENBAYTOOLS2 = "/stoneovenbaytools"
 SlashCmdList.STONEOVENBAYTOOLS = function(message)
     local command = (message or ""):lower():match("^%s*(.-)%s*$")
-    local database = SBT.GetDatabase()
+    local database = SBT:GetProfileDB()
 
     if command == "on" or command == "enable" then
         database.enableAutoResponse = true
