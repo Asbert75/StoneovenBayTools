@@ -1,0 +1,2 @@
+# StoneovenBayTools
+A small tool addon built for the Stoneoven Bay guild to use in an attempt to coordinate the guild in World of Warcraft: Forever. It helps keep track of members professions, xp status, etc.
