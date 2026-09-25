@@ -2,7 +2,8 @@
 ## Title: StoneovenBayTools
 ## Author: Wicked
 ## Version: 1.0.0
-## Category: Guild
+## Category: Guild, Miscellaneous
+## X-Curse-Project-ID: 1710047
 ## SavedVariables: StoneovenBayToolsDB
 ## SavedVariablesPerCharacter: StoneovenBayToolsCharDB
 ## DefaultState: enabled
