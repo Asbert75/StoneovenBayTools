@@ -70,8 +70,9 @@ end
 function StoneovenBayTools:OnEnable()
     SBT.DefaultFont = SBT:GetSharedMedia("font")
     
-    SBT:Init()
     SBT:InitializeMinimapButton()
+    
+    SBT.Campsite:Initialize()
 
     SBT:InitializeGUI()
     SBT:PrettyPrint("Addon loaded. Type |cff8c1616/sbt|r for commands or |cff8c1616/sbt ui|r for settings.")

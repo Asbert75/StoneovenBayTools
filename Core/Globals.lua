@@ -64,6 +64,3 @@ function SBT:PixelPerfect(value)
     local pixelSize = 768 / screenHeight / uiScale
     return pixelSize * math.floor((value / pixelSize) + 0.5333)
 end
-
-function SBT:Init()
-end

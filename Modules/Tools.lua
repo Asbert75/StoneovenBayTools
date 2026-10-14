@@ -48,7 +48,7 @@ end)
 -- commands may be a single bare word or a list of aliases (e.g. "help" or { "professions", "profs" }); the "sbt " prefix
 -- is always required in chat but only needs to be hard-coded here, not repeated in every tool definition. All aliases
 -- share one cooldown/cache entry (the first/canonical name).
-local COMMAND_PREFIX = "sbt "
+local COMMAND_PREFIX = "!"
 
 local function registerTool(commands, channels, handler)
     if type(commands) == "string" then
@@ -74,6 +74,12 @@ local function registerTool(commands, channels, handler)
         if channels.whisper then
             SBT.RegisterEvent("CHAT_MSG_WHISPER", function(message, sender)
                 SBT.HandleToolMessage("whisper", fullAlias, message, sender)
+            end)
+        end
+
+        if channels.party then
+            SBT.RegisterEvent("CHAT_MSG_PARTY", function(message, sender)
+                SBT.HandleToolMessage("party", fullAlias, message, sender)
             end)
         end
     end
@@ -232,18 +238,47 @@ local function trackXPChange()
     lastLevel = currentLevel
 end
 
+-- The daily record is per-character (SBT.db.char) and accumulates completed sessions so relogging the same day merges them.
+local function getDailySessionRecord()
+    local char = SBT.db and SBT.db.char
+    if not char then
+        return nil
+    end
+
+    local today = date("%Y-%m-%d")
+    if type(char.dailySession) ~= "table" or char.dailySession.date ~= today then
+        char.dailySession = { date = today, elapsed = 0, xpGained = 0 }
+    end
+
+    return char.dailySession
+end
+
+local function persistCurrentSessionIntoDailyRecord()
+    local record = getDailySessionRecord()
+    if not record or not sessionStartTime then
+        return
+    end
+
+    record.elapsed = record.elapsed + math.max(0, time() - sessionStartTime)
+    record.xpGained = record.xpGained + sessionXPGained
+end
+
 SBT.RegisterEvent("PLAYER_LOGIN", function()
     sessionStartTime = time()
     sessionXPGained = 0
     lastXP = UnitXP("player")
     lastMaxXP = UnitXPMax("player")
     lastLevel = UnitLevel("player")
+    getDailySessionRecord()
 end)
+
+-- PLAYER_LOGOUT fires before SavedVariables are written, on both logout and /reload.
+SBT.RegisterEvent("PLAYER_LOGOUT", persistCurrentSessionIntoDailyRecord)
 
 SBT.RegisterEvent("PLAYER_XP_UPDATE", trackXPChange)
 SBT.RegisterEvent("PLAYER_LEVEL_UP", trackXPChange)
 
-local function getSessionStatus()
+local function getCurrentSessionStatus()
     local elapsed = sessionStartTime and math.max(0, time() - sessionStartTime) or 0
     local hours = math.floor(elapsed / 3600)
     local minutes = math.floor((elapsed % 3600) / 60)
@@ -260,8 +295,42 @@ local function getSessionStatus()
     }
 end
 
-registerTool("help", { guild = true, whisper = true }, function() return SBT:getHelpMessage() end)
-registerTool("status", { guild = true, whisper = true }, getLevelStatus)
-registerTool({ "professions", "proffs", "profs" }, { guild = true, whisper = true }, getPrimaryProfessions)
-registerTool({ "location", "loc" }, { guild = true, whisper = true }, getLocation)
-registerTool("session", { guild = true, whisper = true }, getSessionStatus)
+local function getTodaySessionStatus()
+    local record = getDailySessionRecord()
+    local persistedElapsed = record and record.elapsed or 0
+    local persistedXP = record and record.xpGained or 0
+
+    local liveElapsed = sessionStartTime and math.max(0, time() - sessionStartTime) or 0
+    local totalElapsed = persistedElapsed + liveElapsed
+    local totalXP = persistedXP + sessionXPGained
+
+    local hours = math.floor(totalElapsed / 3600)
+    local minutes = math.floor((totalElapsed % 3600) / 60)
+    local seconds = totalElapsed % 60
+    local xpPerHour = totalElapsed > 0 and (totalXP / (totalElapsed / 3600)) or 0
+
+    return string.format(
+        "Session (Today): %dh %dm %ds, XP gained: %s, XP/hour: %s",
+        hours, minutes, seconds, formatNumber(totalXP), formatNumber(xpPerHour)
+    ), {
+        elapsed = totalElapsed,
+        xpGained = totalXP,
+        xpPerHour = xpPerHour,
+    }
+end
+
+local function getSessionStatus()
+    local currentText, currentData = getCurrentSessionStatus()
+    local todayText, todayData = getTodaySessionStatus()
+
+    return currentText .. "; " .. todayText, {
+        current = currentData,
+        today = todayData,
+    }
+end
+
+registerTool("status", { guild = true, whisper = true, party = true }, getLevelStatus)
+registerTool({ "professions", "proffs", "profs" }, { guild = true, whisper = true, party = true }, getPrimaryProfessions)
+registerTool({ "location", "loc" }, { guild = true, whisper = true, party = true }, getLocation)
+registerTool("session", { guild = true, whisper = true, party = true }, getSessionStatus)
+registerTool({ "session today", "today" }, { guild = true, whisper = true, party = true }, getTodaySessionStatus)

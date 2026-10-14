@@ -2,11 +2,12 @@ local _, SBT = ...
 
 function SBT:getHelpMessage()
     return table.concat({
-        "sbt help",
-        "sbt status",
-        "sbt professions (aliases: sbt proffs, sbt profs)",
-        "sbt location",
-        "sbt session"
+        "!help",
+        "!status",
+        "!professions (aliases: !proffs, !profs)",
+        "!location",
+        "!session",
+        "!session today (alias: !today)"
     }, "\n")
 end
 
@@ -36,6 +37,8 @@ SlashCmdList.STONEOVENBAYTOOLS = function(message)
         if SBT.RefreshSettingsGUI then
             SBT:RefreshSettingsGUI()
         end
+    elseif command == "campsite" or command == "campfire" then
+        SBT.Campsite:DumpData()
     else
         SBT:PrettyPrint("Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n\nGuild tools:\n" .. SBT:getHelpMessage())
     end
