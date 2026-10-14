@@ -16,20 +16,18 @@ local function GetProfessionData()
     -- Primary professions
     local prof1, prof2, archaeology, fishing, cooking, firstAid = GetProfessions()
 
-    local professionIndexes = {
-        prof1,
-        prof2,
-        fishing,
-        cooking,
-        firstAid,
-    }
-
-    for _, index in ipairs(professionIndexes) do
+    local function AddProfessionIndex(index)
         if index then
             local name, _, rank = GetProfessionInfo(index)
             AddProfession(name, rank)
         end
     end
+
+    AddProfessionIndex(prof1)
+    AddProfessionIndex(prof2)
+    AddProfessionIndex(fishing)
+    AddProfessionIndex(cooking)
+    AddProfessionIndex(firstAid)
 
     return professions
 end
@@ -46,6 +44,7 @@ end
 
 local function DeserializeProfessions(payload)
     local professions = {}
+    if type(payload) ~= "string" then return professions end
 
     for professionData in string.gmatch(payload, "[^,]+") do
         local profession, rank = strsplit(":", professionData)
@@ -98,8 +97,8 @@ function SBT.Campsite:UpdateGroupMemberProfession(sender, payload)
    local data = DeserializeProfessions(payload)
    if not data then return end
 
-   for _, unit in ipairs(SBT.Campsite.Party) do
-      if unit.name == sender then
+   for _, unit in ipairs(SBT.Campsite.Party or {}) do
+      if unit.name == sender or (Ambiguate and Ambiguate(sender, "none") == unit.name) then
          unit.professions = data
          break
       end
@@ -107,11 +106,7 @@ function SBT.Campsite:UpdateGroupMemberProfession(sender, payload)
 end
 
 function SBT.Campsite:DumpData()
-   SBT.Campsite.Party = {
-      { unitIdentifier = "player", name = "Zy Fire", class = UnitClass("player"), professions = GetProfessionData() },
-      { unitIdentifier = "party1", name = "Willem Dafoe", class = "Hunter", professions = GetProfessionData() }
-   }
-
+   if not SBT.Campsite.Party then SBT.Campsite:UpdateGroupRoster() end
    for _, unit in ipairs(SBT.Campsite.Party or {}) do
       print(string.format("%s, Class: %s", unit.name, unit.class))
       if unit.professions then
@@ -150,6 +145,8 @@ function SBT.Campsite:Initialize()
    if C_ChatInfo.RegisterAddonMessagePrefix then
       C_ChatInfo.RegisterAddonMessagePrefix(SBT_CAMPSITE_PREFIX)
    end
+
+   SBT.Campsite:UpdateGroupRoster()
 
    -- local mainWindow = CreateFrame("Frame", "CampsiteMainWindow", UIParent, "BackdropTemplate")
    -- mainWindow:SetSize(300, 200)

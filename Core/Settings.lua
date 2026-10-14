@@ -40,6 +40,6 @@ SlashCmdList.STONEOVENBAYTOOLS = function(message)
     elseif command == "campsite" or command == "campfire" then
         SBT.Campsite:DumpData()
     else
-        SBT:PrettyPrint("Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n\nGuild tools:\n" .. SBT:getHelpMessage())
+        SBT:PrettyPrint("Local commands:\n/sbt on\n/sbt off\n/sbt status\n/sbt ui\n/sbt minimap\n/sbt campsite\n\nChat tools (guild, party, whisper):\n" .. SBT:getHelpMessage())
     end
 end

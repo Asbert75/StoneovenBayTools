@@ -29,6 +29,8 @@ Core\Defaults.lua
 ## GUI
 Core\GUI\Theme.lua
 Core\GUI\Widgets.lua
+Core\GUI\Professions.lua
+Core\GUI\Status.lua
 Core\GUI\GUI.lua
 
 ## Modules

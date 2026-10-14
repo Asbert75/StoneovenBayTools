@@ -9,7 +9,7 @@ function SBT:InitializeGUI()
     MainFrame:SetFrameStrata("HIGH")
     MainFrame:SetMovable(true)
     MainFrame:SetResizable(true)
-    MainFrame:SetResizeBounds(500, 420, 1400, 900)
+    MainFrame:SetResizeBounds(760, 420, 1400, 900)
     MainFrame:EnableMouse(true)
     MainFrame:RegisterForDrag("LeftButton")
 
@@ -91,7 +91,16 @@ function SBT:InitializeGUI()
 
     local tabBar = CreateFrame("Frame", nil, MainFrame)
     tabBar:SetPoint("TOPLEFT", 20, -60)
-    tabBar:SetSize(400, 32)
+    tabBar:SetSize(520, 32)
+
+    local refreshButton = CreateFrame("Button", nil, MainFrame, "UIPanelButtonTemplate")
+    refreshButton:SetSize(160, 24)
+    refreshButton:SetPoint("TOPRIGHT", MainFrame, "TOPRIGHT", -42, -66)
+    refreshButton:SetText("Refresh guild data")
+    refreshButton:SetScript("OnClick", function()
+        local requested, message = SBT:RequestGuildSnapshots()
+        SBT:PrettyPrint(requested and "Requested fresh data from online guild addon users." or message)
+    end)
 
     local contentArea = CreateFrame("Frame", nil, MainFrame)
     contentArea:SetPoint("TOPLEFT", 20, -96)
@@ -103,7 +112,15 @@ function SBT:InitializeGUI()
     local cachedDataPanel = SBT.Widgets:CreatePanel(contentArea)
     cachedDataPanel:SetAllPoints()
 
-    local responseCheckbox = SBT.Widgets:CreateCheckbox(generalPanel, "Enable autoresponse to guild and whisper queries", {
+    local professionsPanel = SBT.Widgets:CreatePanel(contentArea)
+    professionsPanel:SetAllPoints()
+    SBT:InitializeProfessionPanel(professionsPanel)
+
+    local statusPanel = SBT.Widgets:CreatePanel(contentArea)
+    statusPanel:SetAllPoints()
+    SBT:InitializeStatusPanel(statusPanel)
+
+    local responseCheckbox = SBT.Widgets:CreateCheckbox(generalPanel, "Enable autoresponse to guild, party, and whisper queries", {
         getValue = function()
             local profile = SBT:GetProfileDB()
             return profile and profile.enableAutoResponse
@@ -157,10 +174,25 @@ function SBT:InitializeGUI()
             return tostring(data)
         end
 
-        if command == "sbt status" and data.level then
+        if (command == "!status" or command == "sbt status") and data.level then
             return string.format("Level %d: %d/%dxp", data.level, data.currentXP or 0, data.maxXP or 0)
-        elseif command == "sbt location" and data.zone then
+        elseif (command == "!professions" or command == "sbt professions") and type(data.professions) == "table" then
+            local professions = {}
+            for _, profession in ipairs(data.professions) do
+                professions[#professions + 1] = string.format(
+                    "%s %s/%s",
+                    profession.name,
+                    tostring(profession.skillLevel or 0),
+                    tostring(profession.maxSkillLevel or 0)
+                )
+            end
+            return #professions > 0 and table.concat(professions, ", ") or "No professions"
+        elseif (command == "!location" or command == "sbt location") and data.zone then
             return string.format("%s (map %s)", data.zone, tostring(data.mapID))
+        elseif data.current and data.today then
+            return string.format("Current: %d XP; today: %d XP", data.current.xpGained or 0, data.today.xpGained or 0)
+        elseif data.elapsed and data.xpGained then
+            return string.format("%d XP in %dm", data.xpGained, math.floor(data.elapsed / 60))
         elseif data.message then
             return data.message
         end
@@ -169,36 +201,89 @@ function SBT:InitializeGUI()
     end
 
     function SBT:RefreshCachedDataTable()
-        for _, fontString in ipairs(cacheRows) do
-            fontString:Hide()
+        local offsetY = 0
+        local rowCount = 0
+
+        local function addRow(text, fontTemplate, indent, height, color)
+            rowCount = rowCount + 1
+            local row = cacheRows[rowCount]
+            if not row then
+                row = SBT.Widgets:CreateLabel(scrollContent)
+                cacheRows[rowCount] = row
+            end
+
+            row:SetFontObject(_G[fontTemplate or "GameFontNormal"])
+            row:SetTextColor(unpack(color or THEME.text))
+            row:SetText(text)
+            row:ClearAllPoints()
+            row:SetPoint("TOPLEFT", 4 + (indent or 0), -offsetY)
+            row:Show()
+            offsetY = offsetY + (height or 16)
         end
-        wipe(cacheRows)
+
+        addRow("Guild professions", "GameFontNormal", 0, 22)
+
+        local guildCache = SBT:GetGuildProfessionCache()
+        if not guildCache then
+            addRow("Join a guild to see shared profession data.", "GameFontNormalSmall", 12, 20)
+        else
+            local memberNames = {}
+            for memberName in pairs(guildCache) do
+                memberNames[#memberNames + 1] = memberName
+            end
+            table.sort(memberNames)
+
+            if #memberNames == 0 then
+                addRow("No guild professions received yet. Ask a guild member to use !professions.", "GameFontNormalSmall", 12, 20)
+            end
+
+            for _, memberName in ipairs(memberNames) do
+                local entry = guildCache[memberName]
+                local status = (SBT:GetGuildStatusCache() or {})[memberName]
+                local class = SBT:ResolveCharacterClass(memberName,
+                    (type(entry) == "table" and entry.class) or (status and status.class))
+                addRow(memberName, "GameFontNormal", 12, 18, SBT:GetCharacterClassColor(class))
+
+                local professions = type(entry) == "table" and entry.professions or nil
+                if type(professions) ~= "table" or #professions == 0 then
+                    addRow("No primary professions", "GameFontNormalSmall", 24, 16)
+                else
+                    for _, profession in ipairs(professions) do
+                        addRow(string.format(
+                            "%s %s/%s",
+                            profession.name,
+                            tostring(profession.skillLevel or 0),
+                            tostring(profession.maxSkillLevel or 0)
+                        ), "GameFontNormalSmall", 24, 16)
+                    end
+                end
+
+                if type(entry) == "table" and type(entry.updatedAt) == "number" then
+                    addRow("Updated " .. date("%Y-%m-%d %H:%M", entry.updatedAt), "GameFontNormalSmall", 24, 16)
+                end
+                offsetY = offsetY + 8
+            end
+        end
+
+        offsetY = offsetY + 10
+        addRow("Local command responses", "GameFontNormal", 0, 22)
 
         local profile = SBT:GetProfileDB()
         local cache = (profile and profile.memberStatusCache) or {}
-
         local playerNames = {}
         for playerName in pairs(cache) do
-            table.insert(playerNames, playerName)
+            playerNames[#playerNames + 1] = playerName
         end
         table.sort(playerNames)
 
-        local offsetY = 0
-
         if #playerNames == 0 then
-            local emptyLabel = SBT.Widgets:CreateLabel(scrollContent, "No cached data yet. Guild tool queries will populate this list.")
-            emptyLabel:SetPoint("TOPLEFT", 4, -offsetY)
-            table.insert(cacheRows, emptyLabel)
-            offsetY = offsetY + 20
+            addRow("No local responses cached yet.", "GameFontNormalSmall", 12, 20)
         end
 
         for _, playerName in ipairs(playerNames) do
             local entry = cache[playerName]
-
-            local nameLabel = SBT.Widgets:CreateLabel(scrollContent, playerName, "GameFontNormal")
-            nameLabel:SetPoint("TOPLEFT", 4, -offsetY)
-            table.insert(cacheRows, nameLabel)
-            offsetY = offsetY + 18
+            local _, playerClass = UnitClass("player")
+            addRow(playerName, "GameFontNormal", 12, 18, SBT:GetCharacterClassColor(playerClass))
 
             local commands = {}
             for command in pairs(entry) do
@@ -209,24 +294,25 @@ function SBT:InitializeGUI()
             table.sort(commands)
 
             for _, command in ipairs(commands) do
-                local detailLabel = SBT.Widgets:CreateLabel(
-                    scrollContent,
-                    string.format("  %s: %s", command, formatCachedEntry(command, entry[command])),
-                    "GameFontNormalSmall"
+                addRow(
+                    string.format("%s: %s", command, formatCachedEntry(command, entry[command])),
+                    "GameFontNormalSmall", 24, 16
                 )
-                detailLabel:SetPoint("TOPLEFT", 4, -offsetY)
-                table.insert(cacheRows, detailLabel)
-                offsetY = offsetY + 16
             end
 
             offsetY = offsetY + 8
         end
 
+        for index = rowCount + 1, #cacheRows do
+            cacheRows[index]:Hide()
+        end
         scrollContent:SetHeight(math.max(offsetY, 1))
     end
 
     SBT.Widgets:CreateTabGroup(tabBar, {
         { text = "General", panel = generalPanel },
+        { text = "Guild Professions", panel = professionsPanel, onSelect = function() SBT:RefreshProfessionRoster() end },
+        { text = "Guild Status", panel = statusPanel, onSelect = function() SBT:RefreshStatusTable() end },
         { text = "Cached Data", panel = cachedDataPanel, onSelect = function() SBT:RefreshCachedDataTable() end },
     })
 
@@ -234,11 +320,28 @@ function SBT:InitializeGUI()
         responseCheckbox:Refresh()
         cooldownSlider:Refresh()
         minimapCheckbox:Refresh()
+        SBT:RefreshProfessionRoster()
+        SBT:RefreshStatusTable()
         SBT:RefreshCachedDataTable()
     end
 
     MainFrame:HookScript("OnShow", function()
         SBT:RefreshSettingsGUI()
+    end)
+
+    local ageRefreshElapsed = 0
+    MainFrame:HookScript("OnUpdate", function(_, elapsed)
+        ageRefreshElapsed = ageRefreshElapsed + elapsed
+        if ageRefreshElapsed < 60 then
+            return
+        end
+        ageRefreshElapsed = 0
+
+        if professionsPanel:IsShown() then
+            SBT:RefreshProfessionRoster()
+        elseif statusPanel:IsShown() then
+            SBT:RefreshStatusTable()
+        end
     end)
 
     SBT.MainFrame = MainFrame
