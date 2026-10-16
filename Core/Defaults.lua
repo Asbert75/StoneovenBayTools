@@ -47,12 +47,17 @@ local Defaults = {
     -- Profile data for all user-facing settings.
     profile = CopyTable(SharedDefaults),
 
+    -- Character-specific daily XP history.
+    char = {},
+
     -- Account-wide metadata for profile automation.
     global = {
         ProfileBindings = {
             EnableSpecProfiles = false,
             SpecProfiles = {},
         },
+        guildProfessionCache = {},
+        guildStatusCache = {},
     },
 }
 

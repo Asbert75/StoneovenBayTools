@@ -24,13 +24,17 @@ Core\Core.lua
 Core\Globals.lua
 Core\Settings.lua
 Core\SharedMedia.lua
-Core\Tools.lua
 Core\Defaults.lua
 
 ## GUI
 Core\GUI\Theme.lua
 Core\GUI\Widgets.lua
+Core\GUI\Professions.lua
+Core\GUI\Status.lua
 Core\GUI\GUI.lua
 
 ## Modules
 Modules\MinimapButton.lua
+Modules\Tools.lua
+Modules\CampsiteHelper\Campsite.lua
+Modules\CampsiteHelper\Data.lua
